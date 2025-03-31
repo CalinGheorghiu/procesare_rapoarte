@@ -29,12 +29,15 @@ def extract_event_info(file_path):
                 city_candidate = event_full.split(":")[0].strip()
                 result["Oraș"] = city_candidate if not any(char.isdigit() for char in city_candidate) else None
 
-                result["Eveniment"] = event_full
-
                 # Extract artist names based on known patterns like "cu X, Y și Z"
                 artist_match = re.search(r'cu (.+)', event_full, re.IGNORECASE)
                 if artist_match:
                     result["Artiști"] = artist_match.group(1).strip()
+
+                # Clean event name without ID or artists
+                cleaned_title = re.sub(r'\b\d{5,}\b', '', event_full)  # remove event id
+                cleaned_title = re.sub(r'cu .+', '', cleaned_title, flags=re.IGNORECASE)  # remove artists
+                result["Eveniment"] = cleaned_title.strip(" -:").strip()
 
             elif val.lower().startswith("locatie / data eveniment:"):
                 loc_data = val.split("Locatie / Data eveniment:")[-1].strip()
