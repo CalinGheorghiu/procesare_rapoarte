@@ -9,8 +9,10 @@ from io import BytesIO
 try:
     import rarfile
     rarfile.UNRAR_TOOL = "unrar"  # Adjust if needed
+    rar_support = True
 except ImportError:
     rarfile = None
+    rar_support = False
 
 # Function to extract data from one file
 def extract_event_info(file_path):
@@ -49,7 +51,7 @@ def extract_event_info(file_path):
 st.title("📊 Raport Evenimente - Procesare Fișiere Excel")
 
 uploaded_files = st.file_uploader(
-    "\U0001f4c2 Încarcă un fișier .zip, .rar sau fișiere .xlsx direct",
+    "📂 Încarcă un fișier .zip, .rar sau fișiere .xlsx direct",
     type=["zip", "rar", "xlsx"],
     accept_multiple_files=True
 )
@@ -67,12 +69,17 @@ if uploaded_files:
             if filename.endswith(".zip"):
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
                     zip_ref.extractall(tmp_dir)
+
             elif filename.endswith(".rar"):
-                if rarfile:
-                    rf = rarfile.RarFile(file_path)
-                    rf.extractall(tmp_dir)
+                if rar_support:
+                    try:
+                        rf = rarfile.RarFile(file_path)
+                        rf.extractall(tmp_dir)
+                    except rarfile.RarCannotExec:
+                        st.error("❌ Fișierele .rar nu pot fi extrase deoarece programul 'unrar' nu este disponibil pe server. Te rugăm să folosești un fișier .zip.")
                 else:
-                    st.error("RAR nu este suportat. Instalează `rarfile` și `unrar` pentru a activa suportul.")
+                    st.error("❌ Suportul pentru fișiere .rar nu este activat. Te rugăm să folosești un fișier .zip.")
+
             elif filename.endswith(".xlsx"):
                 xlsx_files.append(file_path)
 
@@ -93,7 +100,6 @@ if uploaded_files:
             df_grouped["Dată"] = df_grouped["Dată"].dt.strftime("%d.%m.%Y")
             df_sorted = df_grouped[["Dată", "Eveniment", "Oraș", "Locație", "Total de plată (RON)"]].sort_values("Dată")
 
-            # Dropdown filters
             st.success("✅ Procesare completă!")
             selected_city = st.selectbox("Filtrează după oraș (opțional):", ["Toate"] + sorted(df_sorted["Oraș"].dropna().unique()))
             filtered_df = df_sorted if selected_city == "Toate" else df_sorted[df_sorted["Oraș"] == selected_city]
@@ -103,7 +109,6 @@ if uploaded_files:
 
             st.dataframe(filtered_df)
 
-            # Download buttons
             excel_buffer = BytesIO()
             filtered_df.to_excel(excel_buffer, index=False)
             st.download_button("📥 Descarcă fișierul Excel", excel_buffer.getvalue(), "raport_evenimente.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -114,4 +119,4 @@ if uploaded_files:
         else:
             st.warning("⚠️ Nicio informație validă găsită în fișierele Excel.")
 else:
-    st.info("\U0001f4c2 Te rog să încarci un fișier .zip, .rar sau mai multe fișiere .xlsx.")
+    st.info("📂 Te rog să încarci un fișier .zip, .rar sau mai multe fișiere .xlsx.")
