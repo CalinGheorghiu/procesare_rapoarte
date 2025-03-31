@@ -32,7 +32,10 @@ def extract_event_info(file_path):
                 # Extract artist names based on known patterns like "cu X, Y și Z"
                 artist_match = re.search(r'cu (.+)', event_full, re.IGNORECASE)
                 if artist_match:
-                    result["Artiști"] = artist_match.group(1).strip()
+                    artists = artist_match.group(1).strip()
+                    # remove any IDs from artist string
+                    artists_clean = re.sub(r'\b\d{5,}\b', '', artists).strip(" -")
+                    result["Artiști"] = artists_clean
 
                 # Clean event name without ID or artists
                 cleaned_title = re.sub(r'\b\d{5,}\b', '', event_full)  # remove event id
