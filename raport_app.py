@@ -4,12 +4,13 @@ import zipfile
 import os
 import tempfile
 from io import BytesIO
+import re
 
 # Function to extract data from one file
 def extract_event_info(file_path):
     result = {
-        "Eveniment": None, "Oraș": None, "Locație": None,
-        "Dată": None, "Total de plată (RON)": 0.0
+        "Eveniment complet": None, "ID Eveniment": None, "Eveniment": None,
+        "Oraș": None, "Locație": None, "Dată": None, "Total de plată (RON)": 0.0
     }
     try:
         df = pd.read_excel(file_path, header=None)
@@ -17,10 +18,16 @@ def extract_event_info(file_path):
             val = str(row[0]) if not pd.isna(row[0]) else ""
 
             if val.lower().startswith("eveniment:"):
-                event_name = val.split("Eveniment:")[-1].strip()
-                result["Eveniment"] = event_name
-                if ":" in event_name:
-                    result["Oraș"] = event_name.split(":")[0].strip()
+                event_full = val.split("Eveniment:")[-1].strip()
+                result["Eveniment complet"] = event_full
+
+                # Extract event ID (assuming it's the first number in the title)
+                event_id_match = re.search(r'\b\d{5,}\b', event_full)
+                result["ID Eveniment"] = event_id_match.group(0) if event_id_match else "Fără ID"
+
+                result["Eveniment"] = event_full
+                if ":" in event_full:
+                    result["Oraș"] = event_full.split(":")[0].strip()
 
             elif val.lower().startswith("locatie / data eveniment:"):
                 loc_data = val.split("Locatie / Data eveniment:")[-1].strip()
@@ -79,16 +86,16 @@ if uploaded_files:
 
         if not df_clean.empty:
             df_clean["Dată"] = pd.to_datetime(df_clean["Dată"], errors="coerce", dayfirst=True)
-            df_grouped = df_clean.groupby(["Eveniment", "Oraș", "Locație", "Dată"], as_index=False)["Total de plată (RON)"].sum()
+            df_grouped = df_clean.groupby(["ID Eveniment", "Eveniment", "Oraș", "Locație", "Dată"], as_index=False)["Total de plată (RON)"].sum()
             df_grouped["Dată"] = df_grouped["Dată"].dt.strftime("%d.%m.%Y")
-            df_sorted = df_grouped[["Dată", "Eveniment", "Oraș", "Locație", "Total de plată (RON)"]].sort_values("Dată")
+            df_sorted = df_grouped[["Dată", "ID Eveniment", "Eveniment", "Oraș", "Locație", "Total de plată (RON)"]].sort_values("Dată")
 
             st.success("✅ Procesare completă!")
             selected_city = st.selectbox("Filtrează după oraș (opțional):", ["Toate"] + sorted(df_sorted["Oraș"].dropna().unique()))
             filtered_df = df_sorted if selected_city == "Toate" else df_sorted[df_sorted["Oraș"] == selected_city]
 
-            selected_event = st.selectbox("Filtrează după eveniment (opțional):", ["Toate"] + sorted(filtered_df["Eveniment"].dropna().unique()))
-            filtered_df = filtered_df if selected_event == "Toate" else filtered_df[filtered_df["Eveniment"] == selected_event]
+            selected_id = st.selectbox("Filtrează după ID Eveniment (opțional):", ["Toate"] + sorted(filtered_df["ID Eveniment"].dropna().unique()))
+            filtered_df = filtered_df if selected_id == "Toate" else filtered_df[filtered_df["ID Eveniment"] == selected_id]
 
             st.dataframe(filtered_df)
 
