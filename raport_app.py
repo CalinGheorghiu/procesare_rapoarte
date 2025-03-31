@@ -5,15 +5,6 @@ import os
 import tempfile
 from io import BytesIO
 
-# Optional: RAR support
-try:
-    import rarfile
-    rarfile.UNRAR_TOOL = "unrar"  # Adjust if needed
-    rar_support = True
-except ImportError:
-    rarfile = None
-    rar_support = False
-
 # Function to extract data from one file
 def extract_event_info(file_path):
     result = {
@@ -50,9 +41,11 @@ def extract_event_info(file_path):
 # UI
 st.title("📊 Raport Evenimente - Procesare Fișiere Excel")
 
+st.info("📂 Încarcă un fișier .zip care conține rapoarte Excel (.xlsx) sau încarcă fișiere .xlsx direct. Fișierele .rar nu sunt acceptate.")
+
 uploaded_files = st.file_uploader(
-    "📂 Încarcă un fișier .zip, .rar sau fișiere .xlsx direct",
-    type=["zip", "rar", "xlsx"],
+    "Selectează fișierul .zip sau fișierele .xlsx",
+    type=["zip", "xlsx"],
     accept_multiple_files=True
 )
 
@@ -69,16 +62,6 @@ if uploaded_files:
             if filename.endswith(".zip"):
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
                     zip_ref.extractall(tmp_dir)
-
-            elif filename.endswith(".rar"):
-                if rar_support:
-                    try:
-                        rf = rarfile.RarFile(file_path)
-                        rf.extractall(tmp_dir)
-                    except rarfile.RarCannotExec:
-                        st.error("❌ Fișierele .rar nu pot fi extrase deoarece programul 'unrar' nu este disponibil pe server. Te rugăm să folosești un fișier .zip.")
-                else:
-                    st.error("❌ Suportul pentru fișiere .rar nu este activat. Te rugăm să folosești un fișier .zip.")
 
             elif filename.endswith(".xlsx"):
                 xlsx_files.append(file_path)
@@ -118,5 +101,3 @@ if uploaded_files:
 
         else:
             st.warning("⚠️ Nicio informație validă găsită în fișierele Excel.")
-else:
-    st.info("📂 Te rog să încarci un fișier .zip, .rar sau mai multe fișiere .xlsx.")
