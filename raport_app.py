@@ -33,14 +33,15 @@ def extract_event_info(file_path):
                 artist_match = re.search(r'cu (.+)', event_full, re.IGNORECASE)
                 if artist_match:
                     artists = artist_match.group(1).strip()
-                    # remove any IDs from artist string
-                    artists_clean = re.sub(r'\b\d{5,}\b', '', artists).strip(" -")
+                    # Remove IDs and trailing patterns like (ID:) or "- "
+                    artists_clean = re.split(r'(\(ID:.*?\)|-\s)', artists)[0].strip(" -")
+                    artists_clean = re.sub(r'\b\d{5,}\b', '', artists_clean).strip(" -")
                     result["Artiști"] = artists_clean
 
                 # Clean event name without ID or artists
                 cleaned_title = re.sub(r'\b\d{5,}\b', '', event_full)  # remove event id
                 cleaned_title = re.sub(r'cu .+', '', cleaned_title, flags=re.IGNORECASE)  # remove artists
-                result["Eveniment"] = cleaned_title.strip(" -:").strip()
+                result["Eveniment"] = cleaned_title.strip(" -:.").strip()
 
             elif val.lower().startswith("locatie / data eveniment:"):
                 loc_data = val.split("Locatie / Data eveniment:")[-1].strip()
